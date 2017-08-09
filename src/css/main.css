@@ -39,7 +39,25 @@ html{
 #highlighted {
 	background-color: #EEEEEE;
 }
+#shortcutInfo{
+	float: right;
+	margin: 3px;
+}
+#shortcutInfo a{
+	font-style: italic;
+	font-weight: bold;
+}
 
+#shortcutInfo.clicked #shortcutContainer {
+	display: none;
+}
+
+#shortcutInfo #guide{
+	display: none;
+}
+#shortcutInfo.clicked #guide {
+	display: block;
+}
 input:focus {
 	outline: 1px solid #EEEEEE;
 }

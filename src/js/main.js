@@ -183,6 +183,18 @@ async function initCommander() {
     fuzzySearch();
     document.getElementById('command').oninput = fuzzySearch;
     document.onkeydown = handleKeydown;
+    const commands = await chromePromise.commands.getAll();
+    const mainCommand = commands.find(({name}) => name === '_execute_browser_action');
+
+    const shortcutEl = document.querySelector('#shortcutInfo #shortcutContainer a');
+    shortcutEl.innerText = mainCommand.shortcut;
+    shortcutEl.onclick = async function() {
+      document.querySelector('#shortcutInfo').classList.add('clicked');
+    };
+    document.querySelector('#shortcutInfo #guide a').onclick = async function() {
+      await chromePromise.tabs.create({url: 'chrome://extensions'});
+    };
+
 }
 
 document.addEventListener('DOMContentLoaded', initCommander, false);
