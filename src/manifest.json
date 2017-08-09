@@ -18,7 +18,9 @@
   "permissions":[
     "tabs",
     "storage",
-    "sessions"
+    "sessions",
+    "bookmarks",
+    "history"
   ],
   "commands":{
     "_execute_browser_action": {

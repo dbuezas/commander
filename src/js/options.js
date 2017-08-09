@@ -39,7 +39,13 @@ async function initEnabledActions(){
   let {disabledActions} = await chromePromise.storage.local.get('disabledActions');
   disabledActions = disabledActions || {};
   var container = document.getElementById('enabledActions');
-  defaultSugestions.forEach(function({text}){
+  defaultSugestions
+  .concat([
+    {text: 'Search in Tabs'},
+    {text: 'Search in History'},
+    {text: 'Search in Bookmarks'},
+  ])
+  .forEach(function({text}){
     const label = document.createElement('label');
     const checkbox = document.createElement('input');
     checkbox.setAttribute('type', 'checkbox');
