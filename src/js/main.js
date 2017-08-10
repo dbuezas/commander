@@ -35,7 +35,7 @@ async function getSwitchTabSugestions() {
     const allTabs = await chromePromise.tabs.query({'windowId': chromePromise.windows.WINDOW_ID_CURRENT});
     return allTabs.map(tab => ({
       text: `Switch to: ${tab.title}`,
-      keyword: new URL(tab.url).hostname,
+      keyword: tab.url.slice(0, 100),
       action: switchToTab(tab.id),
     }));
 }
@@ -71,23 +71,35 @@ async function getSearchSuggestions() {
     return [];
 }
 
-async function getAllSuggestions() {
+async function getFastSuggestions() {
   return [].concat(
     await getEnabledSugestions(),
-    await getSwitchTabSugestions(),
     await getUserCommandJSONSuggestions(),
+    await getSwitchTabSugestions(),
+  );
+}
+async function getSlowSuggestions() {
+  return [].concat(
     await getHistorySuggestions(),
     await getBookmarkSugestions(),
   );
 }
-const allSuggestionsPromise = getAllSuggestions();
+let allSuggestionsPromise = getFastSuggestions();
+allSuggestionsPromise.then(async function(fast) {
+  const slow = await getSlowSuggestions();
+  allSuggestionsPromise = Promise.resolve(
+    fast.concat(slow)
+  );
+  fuzzySearch();
+});
+
 
 async function getBookmarkSugestions() {
     if (await isActionDisabled('Search in Bookmarks')) return [];
     const list = await chromePromise.bookmarks.getRecent(10000); // fetch all
     return list.map(({url, title}) => ({
       text: `Bookmark: ${title}`,
-      keyword: new URL(url).hostname,
+      keyword: url.slice(0, 100),
       action: async function() {
         await chromePromise.tabs.create({url});
       },
@@ -96,10 +108,11 @@ async function getBookmarkSugestions() {
 
 async function getHistorySuggestions() {
     if (await isActionDisabled('Search in History')) return [];
-    const list = await chromePromise.history.search({text: '', maxResults: 10000000}); // fetch all
-    return list.map(({url, title}) => ({
+    const list = await chromePromise.history.search({text: '', startTime:0, maxResults: 0}); // fetch all
+    return list.map(({url, title, lastVisitTime}) => ({
       text: `History: ${title}`,
-      keyword: new URL(url).hostname,
+      keyword: url.slice(0, 100),
+      extra: moment(lastVisitTime).fromNow(),
       action: async function() {
         await chromePromise.tabs.create({url});
       },
@@ -149,11 +162,13 @@ function handleMouseover(e){
     changeHighlighted(e.srcElement);
 }
 
-function populateSuggestionsBox(suggestionList){
+function populateSuggestionsBox(suggestionList, onlyFirstN = true){
     var suggestionDiv = document.getElementById('suggestions');
     suggestionDiv.innerHTML = '';
-
-    for (const suggestion of suggestionList) {
+    const maxSuggestions = 100;
+    const mustSlice = onlyFirstN && suggestionList.length > maxSuggestions;
+    let firstSuggestions = mustSlice ? suggestionList.slice(0,  maxSuggestions) : suggestionList;
+    for (const suggestion of firstSuggestions) {
         var suggestionTag = document.createElement('li');
         suggestionTag.className = 'suggestion';
         suggestionTag.innerHTML = escapeHtml(suggestion.text);
@@ -179,7 +194,23 @@ function populateSuggestionsBox(suggestionList){
           keywordTag.innerHTML = escapeHtml(suggestion.keyword);
           suggestionTag.appendChild(keywordTag);
         }
+        if (suggestion.extra) {
+          const keywordTag = document.createElement('div');
+          keywordTag.className = 'extra';
+          keywordTag.innerHTML = suggestion.extra;
+          suggestionTag.appendChild(keywordTag);
+        }
         suggestionDiv.appendChild(suggestionTag);
+    }
+    if (mustSlice) {
+      var suggestionTag = document.createElement('li');
+      suggestionTag.className = 'suggestion';
+      suggestionTag.innerHTML = '...';
+      suggestionTag.onclick = async function() {
+        populateSuggestionsBox(suggestionList, false);
+      };
+      suggestionDiv.appendChild(suggestionTag);
+      suggestionTag.onmouseover = handleMouseover;
     }
     highlightedSuggestion = document.getElementsByClassName('suggestion')[0];
     if (highlightedSuggestion){
@@ -223,7 +254,10 @@ function fixChromeBug() {
 async function initCommander() {
     fixChromeBug();
     fuzzySearch();
-    document.getElementById('command').oninput = fuzzySearch;
+    // in a timeout to avoid blocking the ui while typing
+    document.getElementById('command').oninput = function() {
+      setTimeout(fuzzySearch, 0);
+    };
     document.onkeydown = handleKeydown;
     const commands = await chromePromise.commands.getAll();
     const mainCommand = commands.find(({name}) => name === '_execute_browser_action');

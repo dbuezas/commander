@@ -4,6 +4,7 @@ module.exports = function(grunt) {
     'jsmin-sourcemap': {
       'dist/built.min.js': [
         'src/js/vendor/fuzzy.js',
+        'src/js/vendor/moment.min.js',
         'src/js/vendor/chrome-promise.js',
         'src/js/actions.js',
         'src/js/main.js',

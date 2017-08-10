@@ -36,6 +36,14 @@ html{
 	text-align: right;
 	width: 100%;
 	color: blue;
+	pointer-events: none;
+}
+.suggestion .extra{
+	font-size: .7em;
+	text-align: right;
+	width: 100%;
+	color: gray;
+	pointer-events: none;
 }
 
 #suggestions{
