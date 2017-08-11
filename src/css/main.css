@@ -29,6 +29,13 @@ html{
 	font-weight: 200;
 	padding: 1%;
 	border: 1px solid #EEEEEE;
+	word-break: break-all;
+}
+.suggestion .keyword{
+	font-size: .5em;
+	text-align: right;
+	width: 100%;
+	color: blue;
 }
 
 #suggestions{

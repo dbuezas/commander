@@ -15,16 +15,27 @@ function escapeHtml(unsafe) {
        .replace(BOLD_END_REGEX, '</b>');
 }
 
+const disabledActionsPromise = chromePromise.storage.local.get('disabledActions');
+async function getDisabledActions() {
+  let { disabledActions } = await disabledActionsPromise;
+  return disabledActions || {};
+}
+
+async function isActionDisabled(name) {
+  return (await getDisabledActions())[name];
+}
+
 async function getEnabledSugestions() {
-  let { disabledActions } = await chromePromise.storage.local.get('disabledActions');
-  disabledActions = disabledActions || {};
+  disabledActions = await getDisabledActions();
   return defaultSugestions.filter(({ text }) => !disabledActions[text]);
 }
 
 async function getSwitchTabSugestions() {
+    if (await isActionDisabled('Search in Tabs')) return [];
     const allTabs = await chromePromise.tabs.query({'windowId': chromePromise.windows.WINDOW_ID_CURRENT});
     return allTabs.map(tab => ({
       text: `Switch to: ${tab.title}`,
+      keyword: new URL(tab.url).hostname,
       action: switchToTab(tab.id),
     }));
 }
@@ -65,9 +76,35 @@ async function getAllSuggestions() {
     await getEnabledSugestions(),
     await getSwitchTabSugestions(),
     await getUserCommandJSONSuggestions(),
+    await getHistorySuggestions(),
+    await getBookmarkSugestions(),
   );
 }
+const allSuggestionsPromise = getAllSuggestions();
 
+async function getBookmarkSugestions() {
+    if (await isActionDisabled('Search in Bookmarks')) return [];
+    const list = await chromePromise.bookmarks.getRecent(10000); // fetch all
+    return list.map(({url, title}) => ({
+      text: `Bookmark: ${title}`,
+      keyword: new URL(url).hostname,
+      action: async function() {
+        await chromePromise.tabs.create({url});
+      },
+    }));
+}
+
+async function getHistorySuggestions() {
+    if (await isActionDisabled('Search in History')) return [];
+    const list = await chromePromise.history.search({text: '', maxResults: 10000000}); // fetch all
+    return list.map(({url, title}) => ({
+      text: `History: ${title}`,
+      keyword: new URL(url).hostname,
+      action: async function() {
+        await chromePromise.tabs.create({url});
+      },
+    }));
+}
 
 function scrollTo(highlightedSuggestion){
     try{
@@ -136,6 +173,12 @@ function populateSuggestionsBox(suggestionList){
           }
         }
         suggestionTag.onmouseover = handleMouseover;
+        if (suggestion.keyword) {
+          const keywordTag = document.createElement('div');
+          keywordTag.className = 'keyword';
+          keywordTag.innerHTML = escapeHtml(suggestion.keyword);
+          suggestionTag.appendChild(keywordTag);
+        }
         suggestionDiv.appendChild(suggestionTag);
     }
     highlightedSuggestion = document.getElementsByClassName('suggestion')[0];
@@ -145,22 +188,21 @@ function populateSuggestionsBox(suggestionList){
 }
 
 async function fuzzySearch(){
+    const allSuggestions = await allSuggestionsPromise;
     var searchString = document.getElementById('command').value;
-    const allSuggestions = await getAllSuggestions();
-
     const options = {
       pre: BOLD_START, // before matched char
       post: BOLD_END, // after matched char
       sep: 'Ω', // between different fields
-      extract: s => `${s.text}${options.sep}${s.keyword || ''}`,
+      extract: s => `${s.keyword || ''}${options.sep}${s.text || ''}`,
     };
     const searchResults = fuzzy
       .filter(searchString, allSuggestions, options)
       .map(el => {
         // fuzzy wraps every char with <pre> and <post> so first remove contiguous ones
         const delimited = el.string.replace(new RegExp(options.post + options.pre, 'g'), '');
-        const [text] = delimited.split(options.sep);
-        return Object.assign({}, el.original, { text });
+        const [keyword, text] = delimited.split(options.sep);
+        return Object.assign({}, el.original, { text, keyword });
       });
 
     const withSearches = (await getSearchSuggestions()).concat(searchResults);
