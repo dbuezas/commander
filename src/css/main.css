@@ -1,67 +1,54 @@
-#command{
-	width: 100%;
-	margin: 0px;
-	font-size: 1.3em;
-	padding: 1%;
+#command {
+  width: 100%;
+  margin: 0px;
+  font-size: 1.3em;
+  padding: 1%;
 }
 
-body{
-	padding: 0px;
-	margin: 0px;
-	height: 200px;
-	min-width: 400px;
-	width: 400px;
-	font-weight: 200;
-
+body {
+  padding: 0px;
+  margin: 0px;
+  height: 200px;
+  min-width: 400px;
+  width: 400px;
+  font-weight: 200;
 }
 
 ::-webkit-input-placeholder {
-	font-weight: 200;
+  font-weight: 200;
 }
 
-html{
-	height: 200px;
+html {
+  height: 200px;
 }
 
 .suggestion {
-	list-style-type: none;
-	font-size: 1.3em;
-	font-weight: 200;
-	padding: 1%;
-	border: 1px solid #EEEEEE;
+  list-style-type: none;
+  font-size: 1.3em;
+  font-weight: 200;
+  padding: 1%;
+  border: 1px solid #eeeeee;
 }
 
-#suggestions{
-	overflow-y: scroll;
-	height: 200px;
+#suggestions {
+  overflow-y: scroll;
+  height: 200px;
 }
 
 #highlighted {
-	background-color: #EEEEEE;
+  background-color: #eeeeee;
 }
 
-#shortcutInfo{
-	float: right;
-	margin: 3px;
+#shortcut {
+  float: right;
+  margin: 3px;
 }
 
-#shortcutInfo a{
-	font-style: italic;
-	font-weight: bold;
-}
-
-#shortcutInfo.clicked #shortcutContainer {
-	display: none;
-}
-
-#shortcutInfo #guide{
-	display: none;
-}
-
-#shortcutInfo.clicked #guide {
-	display: block;
+#shortcut a {
+  font-style: italic;
+  font-weight: bold;
 }
 
 input:focus {
-	outline: 1px solid #EEEEEE;
+  outline: 1px solid #eeeeee;
 }
